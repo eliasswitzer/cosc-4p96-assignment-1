@@ -22,7 +22,7 @@ class SupervisedNetwork(nn.Module):
         self.pool3 = nn.MaxPool2d(2, 2)
 
         self.fc1 = nn.Linear(128*4*4, 256, bias=True)
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.5) # implement this as part of stage 3 properly!
         self.fc2 = nn.Linear(256, 10, bias=True)
 
     def forward(self, x):
@@ -37,11 +37,11 @@ class SupervisedNetwork(nn.Module):
         x = F.relu(self.bn5(self.conv5(x)))
         x = self.pool3(x)
 
-        x = torch.flatten(x)
+        x = torch.flatten(x, 1)
 
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
 
-        # x = F.softmaxx(x, dim=1)
+        # x = F.softmax(x, dim=1)
         return x

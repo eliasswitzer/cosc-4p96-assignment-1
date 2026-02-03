@@ -1,4 +1,5 @@
 import torch
+import math
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -48,3 +49,43 @@ class SupervisedNetwork(nn.Module):
 
         # x = F.softmax(x, dim=1)
         return x
+
+def init_weights(m, type):
+    """
+    Initializes weights for the model based on the specified type of weight initialization
+    
+    :param m: the current layer of the model that this method is being applied to
+    :param type: The initialization method, either random uniform, random normal, or He initialization
+    """
+    if not isinstance(m, (nn.Conv2d, nn.Linear)):
+        return
+    
+    fanin, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
+
+    if type == "random_uniform":
+        """
+        Initial weights are sampled from a uniform distribution with lower and upper bound -1/sqrt(fanin)
+        and 1/sqrt(fanin) respectively, where fanin is the number of connections leading into a unit
+        """
+        bound = 1.0 / math.sqrt(fanin)
+        nn.init.uniform_(m.weight, -bound, bound) # initializes weights using uniform distribution and modifies model weights directly
+
+    elif type == "random_normal":
+        """
+        Initial weights are sampled from a normal distribution with mean 0 and a small standard deviation.
+        """
+        nn.init.normal_(m.weight, mean=0.0, std=0.01)
+
+    elif type == "he":
+        """
+        Initial weights are sampled from a normal distritbution with mean 0 and a standard deviation equal to
+        sqrt(2/fanin), where fanin is the number of connections leading into a unit
+        """
+        std = math.sqrt(2.0 / fanin)
+        nn.init.normal_(m.weight, mean=0.0, std=std)
+
+    else:
+        raise ValueError(f"Invalid weight initialization type: {type}")
+
+    if m.bias is not None:
+        nn.init.zeros_(m.bias)

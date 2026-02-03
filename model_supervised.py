@@ -47,7 +47,7 @@ class SupervisedNetwork(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)
 
-        # x = F.softmax(x, dim=1)
+        x = F.softmax(x, dim=1)
         return x
 
 def init_weights(m, type):

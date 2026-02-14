@@ -26,7 +26,7 @@ class SupervisedNetwork(nn.Module):
         self.pool3 = nn.MaxPool2d(2, 2)
 
         self.fc1 = nn.Linear(128*4*4, 256, bias=True)
-        self.dropout = nn.Dropout(0.5) # implement this as part of stage 3 properly!
+        self.dropout = DropoutRegularization(p=0.5)
         self.fc2 = nn.Linear(256, 10, bias=True)
 
     def forward(self, x):
@@ -49,6 +49,17 @@ class SupervisedNetwork(nn.Module):
 
         x = F.softmax(x, dim=1)
         return x
+
+class DropoutRegularization(nn.Module):
+    def __init__(self, p=0.5):
+        super().__init__()
+        self.p = p
+
+    def forward(self, x):
+        if self.training and self.p > 0:
+            to_drop = (torch.rand_like(x) > self.p).float() # generates a tensor of the same shape as x with random values [0, 1), and compares each value to p to determine which to drop
+            return x * to_drop / (1.0 - self.p) # scales the activations
+        return x # if p is 0, just return x
 
 def init_weights(m, type):
     """

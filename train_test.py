@@ -42,7 +42,7 @@ def train(model, device, epochs, train_loader, val_loader, optimizer, criterion,
 
             outputs = model(images)  # forward pass
 
-            ce_loss = criterion(outputs, labels)
+            ce_loss = criterion(outputs, labels) # softmax is applied by CE loss in PyTorch
             l2 = l2_regularization(model)
             loss = ce_loss + (lambda_l2 / 2.0) * l2
 

@@ -3,12 +3,17 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 
+#TODO: Change name to kist "model"
+#TODO: Add parameters for model as well
+
 class SupervisedNetwork(nn.Module):
     """
     Baseline supervised neural network for image classification
     """
-    def __init__(self):
+    def __init__(self, half_images=False):
         super().__init__()
+        self.half_images = half_images
+
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1, bias=True)
         self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=True)
@@ -25,7 +30,8 @@ class SupervisedNetwork(nn.Module):
         self.bn5 = nn.BatchNorm2d(128)
         self.pool3 = nn.MaxPool2d(2, 2)
 
-        self.fc1 = nn.Linear(128*4*4, 256, bias=True)
+        size = 128 * 4 * (2 if self.half_images else 4)
+        self.fc1 = nn.Linear(size, 256, bias=True)
         self.dropout = DropoutRegularization(p=0.5)
         self.fc2 = nn.Linear(256, 10, bias=True)
 
@@ -47,7 +53,7 @@ class SupervisedNetwork(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)
 
-        x = F.softmax(x, dim=1)
+        #x = F.softmax(x, dim=1)
         return x
 
 class DropoutRegularization(nn.Module):
@@ -59,9 +65,9 @@ class DropoutRegularization(nn.Module):
         if self.training and self.p > 0:
             to_drop = (torch.rand_like(x) > self.p).float() # generates a tensor of the same shape as x with random values [0, 1), and compares each value to p to determine which to drop
             return x * to_drop / (1.0 - self.p) # scales the activations
-        return x # if p is 0, just return x
+        return x # if p is 0, or model is not in training mode, just return x
 
-def init_weights(m, type):
+def init_weights(m, type, generator):
     """
     Initializes weights for the model based on the specified type of weight initialization
     
@@ -79,13 +85,13 @@ def init_weights(m, type):
         and 1/sqrt(fanin) respectively, where fanin is the number of connections leading into a unit
         """
         bound = 1.0 / math.sqrt(fanin)
-        nn.init.uniform_(m.weight, -bound, bound) # initializes weights using uniform distribution and modifies model weights directly
+        nn.init.uniform_(m.weight, -bound, bound, generator=generator) # initializes weights using uniform distribution and modifies model weights directly
 
     elif type == "random_normal":
         """
         Initial weights are sampled from a normal distribution with mean 0 and a small standard deviation.
         """
-        nn.init.normal_(m.weight, mean=0.0, std=0.01)
+        nn.init.normal_(m.weight, mean=0.0, std=0.01, generator=generator)
 
     elif type == "he":
         """
@@ -93,7 +99,7 @@ def init_weights(m, type):
         sqrt(2/fanin), where fanin is the number of connections leading into a unit
         """
         std = math.sqrt(2.0 / fanin)
-        nn.init.normal_(m.weight, mean=0.0, std=std)
+        nn.init.normal_(m.weight, mean=0.0, std=std, generator=generator)
 
     else:
         raise ValueError(f"Invalid weight initialization type: {type}")
